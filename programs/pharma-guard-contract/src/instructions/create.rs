@@ -1,21 +1,15 @@
 use anchor_lang::prelude::*;
-
-
-#[account]
-pub struct MedicationData {
-    pub name: String,
-    pub manufacturer: String,
-    pub temperature: i8,
-}
+use crate::state::*;
 
 #[derive(Accounts)]
+#[instruction(name: String, manufacturer: String)]
 pub struct CreateMedication<'info> {
     #[account(
         init, 
-        seeds = [b"medication", user.key().as_ref()],
+        seeds = [name.as_bytes(), user.key().as_ref()],
         bump,
         payer = user, 
-        space = 8 + std::mem::size_of::<MedicationData>(),
+        space = MedicationData::INIT_SPACE + name.len() + manufacturer.len(),
     )]
     pub medication: Account<'info, MedicationData>,
     #[account(mut)]
@@ -23,13 +17,20 @@ pub struct CreateMedication<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn process_create(ctx: Context<CreateMedication>, data: MedicationData) -> Result<()> {
+pub fn create_medication_process(
+    ctx: Context<CreateMedication>, 
+    name: String,
+    manufacturer:String,
+    temperature: i8,
+) -> Result<()> {
     let medication = &mut ctx.accounts.medication;
 
 
-    medication.name = data.name;
-    medication.manufacturer = data.manufacturer;
-    medication.temperature = data.temperature;
+    medication.name = name;
+    medication.manufacturer = manufacturer;
+    medication.temperature = temperature;
+
+    msg!("Medication created: {}", medication.name);
 
     Ok(())
 }

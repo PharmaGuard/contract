@@ -4,9 +4,6 @@ import { PharmaGuardContract } from "../target/types/pharma_guard_contract";
 import { assert, expect } from "chai";
 
 describe("pharma-guard-contract", () => {
-  // Configure the client to use the local cluster.
-  // anchor.setProvider(anchor.AnchorProvider.env());
-
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
@@ -19,20 +16,33 @@ describe("pharma-guard-contract", () => {
   };
 
   const [medication_pda] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("medication"), provider.wallet.publicKey.toBuffer()],
+    [Buffer.from(new_medication.name), provider.wallet.publicKey.toBuffer()],
     program.programId
   );
 
   it("creates a new medication", async () => {
-    // Add your test here.
-    const tx = await program.methods.createMedication(new_medication).accounts({
+    await program.methods.createMedication(new_medication.name, new_medication.manufacturer, new_medication.temperature).accounts({
       medication: medication_pda,
     }).rpc();
-    console.log("Your transaction signature", tx);
 
     const medication = await program.account.medicationData.fetch(medication_pda);
     expect(medication.name === new_medication.name);
     expect(medication.manufacturer === new_medication.manufacturer);
     expect(medication.temperature === new_medication.temperature);
+  });
+
+  it("update a medication", async () => {
+    const newManufacturer = "9";
+    const newTemperature = 9;
+
+    await program.methods.updateMedication(new_medication.name, newManufacturer, newTemperature).accounts({
+      medication: medication_pda,
+    }).rpc();
+
+    const medication = await program.account.medicationData.fetch(medication_pda);
+    console.log(medication);
+
+    expect(medication.manufacturer === newManufacturer);
+    expect(medication.temperature === newTemperature);
   });
 });
