@@ -45,4 +45,10 @@ describe("pharma-guard-contract", () => {
     expect(medication.manufacturer === newManufacturer);
     expect(medication.temperature === newTemperature);
   });
+
+  it("delete a medication", async () => {
+    await program.methods.deleteMedication(new_medication.name).accounts({
+      medication: medication_pda,
+    }).rpc();
+  });
 });

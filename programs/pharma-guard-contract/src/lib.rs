@@ -28,4 +28,8 @@ pub mod pharma_guard_contract {
     ) -> Result<()> {
         update_medication_process(ctx, name, new_manufacturer, new_temperature)
     }
+
+    pub fn delete_medication(ctx: Context<DeleteMedication>, name: String) -> Result<()> {
+        delete_medication_process(ctx,name)
+    }
 }
