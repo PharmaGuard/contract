@@ -1,36 +1,23 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
 
+
 #[derive(Accounts)]
-#[instruction(name: String, manufacturer: String)]
-pub struct CreateMedication<'info> {
+pub struct InitializedManufacturer<'info> {
     #[account(
         init, 
-        seeds = [name.as_bytes(), user.key().as_ref()],
-        bump,
         payer = user, 
-        space = MedicationData::INIT_SPACE + name.len() + manufacturer.len(),
+        space = std::mem::size_of::<ManufacturerData>() + 8,
     )]
-    pub medication: Account<'info, MedicationData>,
+    pub manufacturer: Account<'info, ManufacturerData>,
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
-pub fn create_medication_process(
-    ctx: Context<CreateMedication>, 
-    name: String,
-    manufacturer:String,
-    temperature: i8,
+pub fn initialized_manufacturer_process(
+    ctx: Context<InitializedManufacturer>, 
 ) -> Result<()> {
-    let medication = &mut ctx.accounts.medication;
-
-
-    medication.name = name;
-    medication.manufacturer = manufacturer;
-    medication.temperature = temperature;
-
-    msg!("Medication created: {}", medication.name);
-
+    msg!("Manufacturer initialized");
     Ok(())
 }

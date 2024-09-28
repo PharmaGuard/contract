@@ -1,7 +1,7 @@
 pub mod create;
-pub mod update;
-pub mod delete;
+pub mod add_medication;
+pub mod medication_actions;
 
 pub use create::*;
-pub use update::*;
-pub use delete::*;
+pub use add_medication::*;
+pub use medication_actions::*;
