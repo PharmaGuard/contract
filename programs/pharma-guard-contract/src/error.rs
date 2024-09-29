@@ -15,5 +15,13 @@ pub enum ErrorCode {
     #[msg("The medication is not initialized")]
     MedicationNotInitialized,
     #[msg("No empty medication available")]
-    NoEmptyMedicationAvailable
+    NoEmptyMedicationAvailable,
+    #[msg("The pharmacy account already exists")]
+    PharmacyAccountAlreadyExists,
+    #[msg("The pharmacy account does not exist")]
+    PharmacyAccountDoesNotExist,
+    #[msg("The drug does not exist")]
+    DrugDoesNotExist,
+    #[msg("The order limit has been exceeded")]
+    OrderLimitExceeded
 }

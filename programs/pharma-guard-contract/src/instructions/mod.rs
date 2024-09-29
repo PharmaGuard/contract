@@ -1,7 +1,7 @@
-pub mod create;
-pub mod add_medication;
-pub mod medication_actions;
+pub mod initialize;
+pub mod pharmacy_actions;
+pub mod user_actions;
 
-pub use create::*;
-pub use add_medication::*;
-pub use medication_actions::*;
+pub use initialize::*;
+pub use pharmacy_actions::*;
+pub use user_actions::*;
