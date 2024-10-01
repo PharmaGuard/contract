@@ -11,12 +11,14 @@ declare_id!("7Yh9T122Q7guDzQe2FSYRcKj443AUvNpv3P9PeB7vGCt");
 pub mod pharma_guard_contract {
     use super::*;
 
-    pub fn initialized_user(ctx: Context<InitialUser>) -> Result<()> {
-        initial_user_process(ctx)
+
+    // initial
+    pub fn initial_user_paa(ctx: Context<InitialUserPharmacyAssociatedAccount>) -> Result<()> {
+        initial_user_paa_process(ctx)
     }
 
     pub fn initial_pharmacy(
-        ctx: Context<InitialPharmacy>,
+        ctx: Context<InitialPharmacyAccountInfo>,
         license_number: u32,
         phone_number: u32,
     ) -> Result<()> {
@@ -25,20 +27,27 @@ pub mod pharma_guard_contract {
 
     pub fn initial_drug(
         ctx: Context<InitialDrug>,
+        price: u64,
         temperature: i8,
         batch_number: u32,
     ) -> Result<()> {
-        initial_drug_process(ctx, temperature, batch_number)
+        initial_drug_process(ctx, price, temperature, batch_number)
     }
 
-    pub fn create_order(ctx: Context<CreateOrder>) -> Result<()> {
-        create_order_process(ctx)
+    // user actions
+    pub fn takeout_order(ctx: Context<TakeOutOrder>) -> Result<()> {
+        takeout_order_process(ctx)
     }
 
     pub fn sign_for(ctx: Context<SignFor>) -> Result<()> {
         sign_for_process(ctx)
     }
 
+    pub fn bind_pharmacy(ctx: Context<BindPharmacy>) -> Result<()> {
+        bind_pharmacy_process(ctx)
+    }
+
+    // pharmacy actions
     pub fn send_out(ctx: Context<SendOut>) -> Result<()> {
         send_out_process(ctx)
     }

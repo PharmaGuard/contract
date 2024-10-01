@@ -1,46 +1,54 @@
 use crate::error::ErrorCode;
 use crate::state::*;
 use anchor_lang::prelude::*;
+use anchor_spl::token_interface::*;
 
 #[event]
 pub struct SendOutEvent {
-    pub user: Pubkey,
+    pub user_pharmacy_associated_account: Pubkey,
     pub drug: Pubkey,
-    pub pharmacy: Pubkey,
+    pub pharmacy_info_account: Pubkey,
 }
 
 #[derive(Accounts)]
 pub struct SendOut<'info> {
     #[account(
         mut,
-        has_one = authority,
+        seeds = [
+            user_pharmacy_associated_account.authority.key().as_ref(),
+            USER_PHARMACY_ASSOCIATED_ACCOUNT_SEED.as_bytes(),
+        ],
+        bump = user_pharmacy_associated_account.bump,
     )]
-    pub user: Account<'info, User>,
+    pub user_pharmacy_associated_account: Box<Account<'info, UserPharmacyAssociatedAccount>>,
     pub drug: Account<'info, Drug>,
-    pub pharmacy: Account<'info, Pharmacy>,
-    #[account(mut)]
-    pub authority: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [authority.key().as_ref(), PHARMACY_INFO_ACCOUNT_SEED.as_bytes()],
+        bump,
+    )]
+    pub pharmacy_info_account: Account<'info, PharmacyInfoAccount>,
+    pub authority: Signer<'info>
 }
 
 pub fn send_out_process(ctx: Context<SendOut>) -> Result<()> {
-    let user = &mut ctx.accounts.user;
-    let pharmacy_pk = &ctx.accounts.pharmacy.key();
+    let user_pharmacy_associated_account = &mut ctx.accounts.user_pharmacy_associated_account;
+    let pharmacy_info_account_pk = &ctx.accounts.pharmacy_info_account.key();
     let drug_pk = &ctx.accounts.drug.key();
 
-    if !user.check_pharmacy_account_exists(pharmacy_pk) {
-        return Err(ErrorCode::PharmacyAccountDoesNotExist.into());
+    if !user_pharmacy_associated_account.check_pharmacy_info_exists(pharmacy_info_account_pk) {
+        return Err(ErrorCode::PharmacyNotAssociated.into());
     }
 
-    let pharmacy_op = user.get_pharmacy_account(pharmacy_pk);
+    let pharmacy_info =
+        user_pharmacy_associated_account.get_pharmacy_account(pharmacy_info_account_pk)?;
 
-    if let Some(pharmacy) = pharmacy_op {
-        pharmacy.send_out(drug_pk)?;
-    }
+    pharmacy_info.send_out(drug_pk)?;
 
     emit!(SendOutEvent {
-        user: ctx.accounts.user.key(),
-        drug: ctx.accounts.drug.key(),
-        pharmacy: ctx.accounts.pharmacy.key(),
+        user_pharmacy_associated_account: user_pharmacy_associated_account.key(),
+        drug: *drug_pk,
+        pharmacy_info_account: *pharmacy_info_account_pk,
     });
 
     Ok(())
@@ -48,43 +56,53 @@ pub fn send_out_process(ctx: Context<SendOut>) -> Result<()> {
 
 #[event]
 pub struct LossDrugEvent {
-    pub user: Pubkey,
+    pub user_pharmacy_associated_account: Pubkey,
     pub drug: Pubkey,
-    pub pharmacy: Pubkey,
+    pub pharmacy_info_account: Pubkey,
 }
 
 #[derive(Accounts)]
 pub struct LossDrug<'info> {
     #[account(
         mut,
-        has_one = authority,
+        seeds = [
+            user_pharmacy_associated_account.authority.key().as_ref(),
+            USER_PHARMACY_ASSOCIATED_ACCOUNT_SEED.as_bytes(),
+        ],
+        bump = user_pharmacy_associated_account.bump,
     )]
-    pub user: Account<'info, User>,
+    pub user_pharmacy_associated_account: Box<Account<'info, UserPharmacyAssociatedAccount>>,
     pub drug: Account<'info, Drug>,
-    pub pharmacy: Account<'info, Pharmacy>,
+    #[account(
+        mut,
+        seeds = [authority.key().as_ref(), PHARMACY_INFO_ACCOUNT_SEED.as_bytes()],
+        bump,
+    )]
+    pub pharmacy_info_account: Account<'info, PharmacyInfoAccount>,
     #[account(mut)]
     pub authority: Signer<'info>,
+    #[account(mint::token_program = token_program)]
+    pub token_mint: InterfaceAccount<'info, Mint>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 pub fn loss_drug_process(ctx: Context<LossDrug>) -> Result<()> {
-    let user = &mut ctx.accounts.user;
-    let pharmacy_pk = &ctx.accounts.pharmacy.key();
+    let user_pharmacy_associated_account = &mut ctx.accounts.user_pharmacy_associated_account;
+    let pharmacy_info_account_pk = &ctx.accounts.pharmacy_info_account.key();
     let drug_pk = &ctx.accounts.drug.key();
 
-    if !user.check_pharmacy_account_exists(pharmacy_pk) {
-        return Err(ErrorCode::PharmacyAccountDoesNotExist.into());
+    if !user_pharmacy_associated_account.check_pharmacy_info_exists(pharmacy_info_account_pk) {
+        return Err(ErrorCode::PharmacyNotAssociated.into());
     }
 
-    let pharmacy_op = user.get_pharmacy_account(pharmacy_pk);
+    let pharmacy_info = user_pharmacy_associated_account.get_pharmacy_account(pharmacy_info_account_pk)?;
 
-    if let Some(pharmacy) = pharmacy_op {
-        pharmacy.loss_drug(drug_pk)?;
-    }
+    pharmacy_info.loss_drug(drug_pk)?;
 
     emit!(LossDrugEvent {
-        user: ctx.accounts.user.key(),
-        drug: ctx.accounts.drug.key(),
-        pharmacy: ctx.accounts.pharmacy.key(),
+        user_pharmacy_associated_account: user_pharmacy_associated_account.key(),
+        drug: *drug_pk,
+        pharmacy_info_account: *pharmacy_info_account_pk,
     });
 
     Ok(())

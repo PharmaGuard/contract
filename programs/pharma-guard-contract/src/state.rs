@@ -9,17 +9,37 @@ pub const COMPLETED: u8 = 1 << 3;
 pub const MEDICATION_NORMAL: u8 = 1 << 4;
 pub const MEDICATION_LOST: u8 = 1 << 5;
 
-const MAX_ORDERS: usize = 3;
-const MAX_PHARMACIES: usize = 3;
+const MAX_ORDERS: usize = 2;
+const MAX_PHARMACIES: usize = 2;
+
+pub const USER_PHARMACY_ASSOCIATED_ACCOUNT_SEED: &str = "user_pharmacy_associated_account";
+pub const PHARMACY_INFO_ACCOUNT_SEED: &str = "pharmacy_info_account";
+pub const USER_ATA_SEED: &str = "user_ATA";
+pub const PHARMACY_ATA_SEED: &str = "pharmacy_ATA";
+
+
 
 #[account]
-pub struct Pharmacy {
+pub struct PharmacyInfoAccount {
+    pub bump: u8,
+    pub sol_ata_bump: u8,
+    pub authority: Pubkey,
     license_number: u32,
     phone_number: u32,
 }
 
-impl Pharmacy {
-    pub fn new(&mut self, license_number: u32, phone_number: u32) -> Result<()> {
+impl PharmacyInfoAccount {
+    pub fn new(
+        &mut self,
+        bump: u8,
+        sol_ata_bump: u8,
+        authority: Pubkey,
+        license_number: u32,
+        phone_number: u32
+    ) -> Result<()> {
+        self.bump = bump;
+        self.sol_ata_bump = sol_ata_bump;
+        self.authority = authority;
         self.license_number = license_number;
         self.phone_number = phone_number;
         Ok(())
@@ -28,13 +48,15 @@ impl Pharmacy {
 
 #[account]
 pub struct Drug {
+    pub price: u64,
     pub temperature: i8,
     pub production_date: i64,
     pub batch_number: u32,
 }
 
 impl Drug {
-    pub fn new(&mut self, temperature: i8, batch_number: u32) -> Result<()> {
+    pub fn new(&mut self, price: u64, temperature: i8, batch_number: u32) -> Result<()> {
+        self.price = price;
         self.temperature = temperature;
         self.production_date = Clock::get()?.unix_timestamp;
         self.batch_number = batch_number;
@@ -43,70 +65,63 @@ impl Drug {
 }
 
 #[account]
-pub struct User {
+pub struct UserPharmacyAssociatedAccount {
+    pub bump: u8,
+    pub sol_ata_bump: u8,
     pub authority: Pubkey,
-    pub pharmacy_account_list: [PharmacyAccount; MAX_PHARMACIES],
+    pub pharmacy_infos: [PharmacyInfo; MAX_PHARMACIES],
 }
 
-impl User {
-    pub fn new(&mut self, authority: Pubkey) -> Result<()> {
+impl UserPharmacyAssociatedAccount {
+    pub fn new(&mut self, authority: Pubkey, bump: u8, sol_ata_bump: u8) -> Result<()> {
+        self.bump = bump;
+        self.sol_ata_bump = sol_ata_bump;
         self.authority = authority;
         Ok(())
     }
 
-    pub fn add_pharmacy_account(&mut self, pharmacy_pk: &Pubkey) -> Result<()> {
-        // check whether the pharmacy account already exists
-        // if !self.check_pharmacy_account_exists(pharmacy_pk) {
-        //     return Err(ErrorCode::PharmacyAccountAlreadyExists.into());
-        // }
-        // add the pharmacy account to the list
+    pub fn add_pharmacy_info(&mut self, pharmacy_pk: &Pubkey) -> Result<()> {
         for i in 0..MAX_PHARMACIES {
-            if self.pharmacy_account_list[i].pharmacy_pk == Pubkey::default() {
-                self.pharmacy_account_list[i].pharmacy_pk = *pharmacy_pk;
+            if self.pharmacy_infos[i].pharmacy_pk == Pubkey::default() {
+                self.pharmacy_infos[i].pharmacy_pk = *pharmacy_pk;
                 break;
             }
         }
-
         Ok(())
     }
 
     pub fn add_order(&mut self, pharmacy_pk: &Pubkey, order: Order) -> Result<()> {
-        let pharmacy = self.get_pharmacy_account(pharmacy_pk);
-        if let Some(pharmacy) = pharmacy {
-            pharmacy.add_order(order)?;
-        } else {
-            return Err(ErrorCode::PharmacyAccountDoesNotExist.into());
-        }
+        let pharmacy = self.get_pharmacy_account(pharmacy_pk)?;
+        pharmacy.add_order(order)?;
         Ok(())
     }
 
-    pub fn check_pharmacy_account_exists(&self, pharmacy_pk: &Pubkey) -> bool {
+    pub fn check_pharmacy_info_exists(&self, pharmacy_pk: &Pubkey) -> bool {
         for i in 0..MAX_PHARMACIES {
-            if self.pharmacy_account_list[i].pharmacy_pk == *pharmacy_pk {
+            if self.pharmacy_infos[i].pharmacy_pk == *pharmacy_pk {
                 return true;
             }
         }
         false
     }
 
-    pub fn get_pharmacy_account(&mut self, pharmacy_pk: &Pubkey) -> Option<&mut PharmacyAccount> {
+    pub fn get_pharmacy_account(&mut self, pharmacy_pk: &Pubkey) -> Result<&mut PharmacyInfo> {
         for i in 0..MAX_PHARMACIES {
-            if self.pharmacy_account_list[i].pharmacy_pk == *pharmacy_pk {
-                return Some(&mut self.pharmacy_account_list[i]);
+            if self.pharmacy_infos[i].pharmacy_pk == *pharmacy_pk {
+                return Ok(&mut self.pharmacy_infos[i]);
             }
         }
-        None
+        Err(ErrorCode::PharmacyDoesNotBound.into())
     }
-
 }
 
 #[derive(Clone, Debug, AnchorSerialize, AnchorDeserialize)]
-pub struct PharmacyAccount {
+pub struct PharmacyInfo {
     pub pharmacy_pk: Pubkey,
     pub order_history: [Order; MAX_ORDERS],
 }
 
-impl PharmacyAccount {
+impl PharmacyInfo {
     pub fn loss_drug(&mut self, drug_pk: &Pubkey) -> Result<()> {
         for i in 0..MAX_ORDERS {
             let order = &mut self.order_history[i];
@@ -170,6 +185,7 @@ impl Order {
     }
 
     pub fn set_loss(&mut self) {
+        self.status = CANCELLED;
         self.drug_status = MEDICATION_LOST;
     }
 
