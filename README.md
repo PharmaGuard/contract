@@ -15,7 +15,7 @@ spl-token-2022 = "3.0.4"
 solana-program = "1.18.0"
 ```
 # Deployment situation
-1. CirTw1apKgQHSveAvpMp3P283Z54XzJWTBy1LHVLz7E9 (devnet) (Note: Verification has not been successful yet)
+1. CirTw1apKgQHSveAvpMp3P283Z54XzJWTBy1LHVLz7E9 (devnet) (Note: Verification has not been successful yet https://github.com/coral-xyz/anchor/issues/3289)
 # Instruction Introduction
 ### 1. `initialUserPaa`
 Initializes the User Pharmacy Associated Account, linking a user to their pharmacy.
